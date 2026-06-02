@@ -268,7 +268,7 @@
         <div class="video-info" id="videoInfo"></div>
     </div>
 
-    <script>
+<script>
         const urlInput = document.getElementById('urlInput');
         const mp4Btn = document.getElementById('downloadMp4Btn');
         const mp3Btn = document.getElementById('downloadMp3Btn');
@@ -279,129 +279,79 @@
         function showMessage(text, type = 'error') {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type} show`;
-            setTimeout(() => {
-                messageDiv.classList.remove('show');
-            }, 5000);
+            setTimeout(() => messageDiv.classList.remove('show'), 5000);
         }
         
-        function setLoading(loading_state) {
-            if (loading_state) {
+        function setLoading(state) {
+            if(state) {
                 loading.classList.add('show');
-                mp4Btn.disabled = true;
-                mp3Btn.disabled = true;
+                mp4Btn.disabled = mp3Btn.disabled = true;
             } else {
                 loading.classList.remove('show');
-                mp4Btn.disabled = false;
-                mp3Btn.disabled = false;
-            }
-        }
-        
-        async function validateURL(url) {
-            try {
-                const response = await fetch('/validate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: url })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Validation error:', error);
-                return { isValid: false, error: 'خطأ في الاتصال بالخادم' };
-            }
-        }
-        
-        function displayVideoInfo(info) {
-            if (info.platform === 'youtube' && info.thumbnail) {
-                const minutes = Math.floor(info.duration / 60);
-                const seconds = info.duration % 60;
-                const durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
-                videoInfoDiv.innerHTML = `
-                    <img src="${info.thumbnail}" alt="Thumbnail">
-                    <div class="video-title">🎬 ${info.title}</div>
-                    <div class="video-details">⏱️ المدة: ${durationStr} | 👤 ${info.author || 'YouTube'}</div>
-                `;
-                videoInfoDiv.classList.add('show');
-            } else {
-                videoInfoDiv.classList.remove('show');
+                mp4Btn.disabled = mp3Btn.disabled = false;
             }
         }
         
         async function downloadMedia(type) {
             const url = urlInput.value.trim();
-            
-            if (!url) {
-                showMessage('الرجاء إدخال رابط الفيديو', 'error');
-                return;
-            }
+            if (!url) return showMessage('الرجاء إدخال رابط الفيديو', 'error');
             
             setLoading(true);
             
             try {
-                // Validate first
-                const validation = await validateURL(url);
+                // 1. نطلب من السيرفر الرابط المباشر للملف
+                const response = await fetch(`/get-link?url=${encodeURIComponent(url)}&type=${type}`);
+                const data = await response.json();
                 
-                if (!validation.isValid) {
-                    showMessage(validation.error || 'الرابط غير صالح', 'error');
-                    setLoading(false);
-                    return;
+                if (!data.success) {
+                    throw new Error(data.error);
                 }
                 
-                if (validation.platform !== 'youtube') {
-                    showMessage(validation.message || 'هذه المنصة قيد التطوير حالياً. يرجى استخدام روابط YouTube', 'info');
-                    setLoading(false);
-                    return;
-                }
-                
-                // Show video info
-                displayVideoInfo(validation);
-                
-                // Create download link
-                const downloadUrl = `/download?url=${encodeURIComponent(url)}&type=${type}`;
-                
-                // Trigger download
+                // 2. نفتح الرابط المباشر في تبويب جديد عشان يبدأ التحميل فوراً
+                // ده بيحل مشكلة الوقت والمساحة لأن Vercel مش هو اللي بينقل الملف
                 const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = '';
+                link.href = data.downloadUrl;
+                link.download = data.filename; // اسم الملف
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                showMessage(`بدء تحميل ${type.toUpperCase()}...`, 'success');
-                
-                setTimeout(() => {
-                    setLoading(false);
-                }, 2000);
+                showMessage(`✅ بدء تحميل: ${data.filename}`, 'success');
                 
             } catch (error) {
-                console.error('Download error:', error);
-                showMessage('حدث خطأ أثناء التحميل: ' + error.message, 'error');
+                console.error(error);
+                showMessage('فشل التحميل: ' + error.message, 'error');
+            } finally {
                 setLoading(false);
             }
         }
         
+        // ربط الأزرار
         mp4Btn.addEventListener('click', () => downloadMedia('mp4'));
         mp3Btn.addEventListener('click', () => downloadMedia('mp3'));
         
-        // Auto validate on input (debounced)
+        // التحقق التلقائي من الرابط (نفس الكود القديم)
         let timeout;
         urlInput.addEventListener('input', (e) => {
             clearTimeout(timeout);
             const url = e.target.value.trim();
-            
             if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
                 timeout = setTimeout(async () => {
-                    const validation = await validateURL(url);
+                    const response = await fetch('/validate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url })
+                    });
+                    const validation = await response.json();
                     if (validation.isValid && validation.platform === 'youtube') {
-                        displayVideoInfo(validation);
+                        const minutes = Math.floor(validation.duration / 60);
+                        const seconds = validation.duration % 60;
+                        videoInfoDiv.innerHTML = `
+                            <img src="${validation.thumbnail}" alt="Thumbnail">
+                            <div class="video-title">🎬 ${validation.title}</div>
+                            <div class="video-details">⏱️ المدة: ${minutes}:${seconds.toString().padStart(2, '0')}</div>
+                        `;
+                        videoInfoDiv.classList.add('show');
                     } else {
                         videoInfoDiv.classList.remove('show');
                     }
@@ -410,26 +360,6 @@
                 videoInfoDiv.classList.remove('show');
             }
         });
-        
-        // Handle Enter key
-        urlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const url = urlInput.value.trim();
-                if (url) {
-                    validateURL(url).then(validation => {
-                        if (validation.isValid && validation.platform === 'youtube') {
-                            displayVideoInfo(validation);
-                            showMessage('✓ الرابط صالح! اختر نوع التحميل', 'success');
-                        } else if (!validation.isValid) {
-                            showMessage(validation.error, 'error');
-                        }
-                    });
-                }
-            }
-        });
-        
-        console.log('App loaded successfully');
     </script>
 </body>
 </html>
