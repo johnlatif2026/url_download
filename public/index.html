@@ -60,7 +60,6 @@
             border-radius: 10px;
             font-size: 16px;
             background: rgba(255, 255, 255, 0.95);
-            transition: all 0.3s;
             direction: ltr;
             text-align: left;
         }
@@ -68,7 +67,6 @@
         input:focus {
             outline: none;
             box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
         }
 
         .platforms {
@@ -187,11 +185,6 @@
             color: white;
         }
 
-        .message.info {
-            background: #17a2b8;
-            color: white;
-        }
-
         .video-info {
             display: none;
             background: rgba(255, 255, 255, 0.1);
@@ -251,7 +244,7 @@
         
         <div class="input-group">
             <label>رابط الفيديو:</label>
-            <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=..." dir="ltr">
+            <input type="text" id="urlInput" placeholder="https://www.youtube.com/watch?v=...">
         </div>
         
         <div class="button-group">
@@ -268,7 +261,7 @@
         <div class="video-info" id="videoInfo"></div>
     </div>
 
-<script>
+    <script>
         const urlInput = document.getElementById('urlInput');
         const mp4Btn = document.getElementById('downloadMp4Btn');
         const mp3Btn = document.getElementById('downloadMp3Btn');
@@ -279,21 +272,26 @@
         function showMessage(text, type = 'error') {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type} show`;
-            setTimeout(() => messageDiv.classList.remove('show'), 5000);
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+            }, 5000);
         }
         
         function setLoading(state) {
-            if(state) {
+            if (state) {
                 loading.classList.add('show');
-                mp4Btn.disabled = mp3Btn.disabled = true;
+                mp4Btn.disabled = true;
+                mp3Btn.disabled = true;
             } else {
                 loading.classList.remove('show');
-                mp4Btn.disabled = mp3Btn.disabled = false;
+                mp4Btn.disabled = false;
+                mp3Btn.disabled = false;
             }
         }
         
         async function downloadMedia(type) {
             const url = urlInput.value.trim();
+            
             if (!url) {
                 showMessage('الرجاء إدخال رابط الفيديو', 'error');
                 return;
@@ -302,24 +300,23 @@
             setLoading(true);
             
             try {
-                // التحقق أولاً
+                // التحقق من الرابط أولاً
                 const validateRes = await fetch('/validate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
                 });
+                
                 const validation = await validateRes.json();
                 
                 if (!validation.isValid) {
-                    showMessage(validation.error || 'رابط غير صالح', 'error');
+                    showMessage(validation.error || 'الرابط غير صالح', 'error');
                     setLoading(false);
                     return;
                 }
                 
-                // بدء التحميل المباشر
-                const downloadUrl = `/download-stream?url=${encodeURIComponent(url)}&type=${type}`;
-                
-                // طريقة مباشرة للتحميل
+                // بدء التحميل
+                const downloadUrl = `/download?url=${encodeURIComponent(url)}&type=${type}`;
                 const link = document.createElement('a');
                 link.href = downloadUrl;
                 link.download = '';
@@ -335,7 +332,7 @@
                 
             } catch (error) {
                 console.error('Download error:', error);
-                showMessage('فشل التحميل: ' + error.message, 'error');
+                showMessage('حدث خطأ: ' + error.message, 'error');
                 setLoading(false);
             }
         }
@@ -343,7 +340,7 @@
         mp4Btn.addEventListener('click', () => downloadMedia('mp4'));
         mp3Btn.addEventListener('click', () => downloadMedia('mp3'));
         
-        // Auto validate
+        // التحقق التلقائي من الرابط
         let timeout;
         urlInput.addEventListener('input', (e) => {
             clearTimeout(timeout);
@@ -365,14 +362,13 @@
                             videoInfoDiv.innerHTML = `
                                 <img src="${validation.thumbnail}" alt="Thumbnail">
                                 <div class="video-title">🎬 ${validation.title}</div>
-                                <div class="video-details">⏱️ ${minutes}:${seconds.toString().padStart(2, '0')} | 👤 ${validation.author}</div>
+                                <div class="video-details">⏱️ المدة: ${minutes}:${seconds.toString().padStart(2, '0')} | 👤 ${validation.author}</div>
                             `;
                             videoInfoDiv.classList.add('show');
                         } else {
                             videoInfoDiv.classList.remove('show');
                         }
                     } catch (err) {
-                        console.error('Validation error:', err);
                         videoInfoDiv.classList.remove('show');
                     }
                 }, 500);
