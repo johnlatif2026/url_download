@@ -2,17 +2,18 @@ const express = require('express');
 const ytdl = require('ytdl-core');
 const cors = require('cors');
 const path = require('path');
+const https = require('https');
+const stream = require('stream');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-//Middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper function للتحقق من الرابط
 async function validateUrl(url) {
     try {
         if (ytdl.validateURL(url)) {
@@ -30,62 +31,82 @@ async function validateUrl(url) {
                 return { isValid: true, platform: 'youtube', title: 'YouTube Video' };
             }
         }
-        return { isValid: false, error: '❌ الرابط غير صالح. يرجى التأكد من الرابط' };
+        return { isValid: false, error: '❌ الرابط غير صالح' };
     } catch (error) {
-        return { isValid: false, error: '❌ حدث خطأ في التحقق من الرابط' };
+        return { isValid: false, error: '❌ حدث خطأ' };
     }
 }
 
-// *** نقطة التحول: Endpoint جديد لاستخراج رابط التحميل المباشر ***
-app.get('/get-link', async (req, res) => {
+// Endpoint للتحميل المباشر (وليس رابط)
+app.get('/download-stream', async (req, res) => {
     try {
         const { url, type } = req.query;
         
         if (!url || !ytdl.validateURL(url)) {
-            return res.status(400).json({ error: 'رابط يوتيوب غير صالح' });
+            return res.status(400).json({ error: 'رابط غير صالح' });
         }
 
-        // 1. نجيب معلومات الفيديو
         const info = await ytdl.getInfo(url);
-        
-        // 2. ننضف اسم الملف
-        let title = info.videoDetails.title
-            .replace(/[^\w\s\u0600-\u06FF]/gi, '')
-            .substring(0, 50);
-            
-        let directUrl = '';
-        let fileExt = '';
+        let title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0, 50);
         
         if (type === 'mp4') {
-            // اختيار أفضل جودة فيديو (360p أو 720p)
-            let format = info.formats.find(f => f.hasVideo && f.hasAudio && f.qualityLabel === '360p');
-            if (!format) format = info.formats.find(f => f.hasVideo && f.hasAudio);
-            if (!format) throw new Error('No video format found');
-            directUrl = format.url;
-            fileExt = 'mp4';
-        } else {
-            // اختيار أفضل جودة صوت
-            let format = info.formats.find(f => f.hasAudio && !f.hasVideo && f.audioBitrate === 128);
-            if (!format) format = info.formats.find(f => f.hasAudio && !f.hasVideo);
-            if (!format) throw new Error('No audio format found');
-            directUrl = format.url;
-            fileExt = 'mp3';
+            // اختيار أفضل تنسيق فيديو
+            const format = ytdl.chooseFormat(info.formats, { 
+                quality: 'lowest',
+                filter: 'audioandvideo'
+            });
+            
+            if (!format) {
+                return res.status(404).json({ error: 'لا يوجد تنسيق فيديو' });
+            }
+            
+            // تعيين headers للتحميل
+            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+            res.header('Content-Type', 'video/mp4');
+            
+            // تدفق الفيديو مباشرة
+            const videoStream = ytdl(url, { format: format });
+            videoStream.pipe(res);
+            
+            videoStream.on('error', (err) => {
+                console.error('Stream error:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'خطأ في التدفق' });
+                }
+            });
+            
+        } else if (type === 'mp3') {
+            // تنسيق الصوت
+            const audioFormat = ytdl.chooseFormat(info.formats, { 
+                quality: '140',
+                filter: 'audioonly'
+            });
+            
+            if (!audioFormat) {
+                return res.status(404).json({ error: 'لا يوجد تنسيق صوت' });
+            }
+            
+            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+            res.header('Content-Type', 'audio/mpeg');
+            
+            const audioStream = ytdl(url, { format: audioFormat });
+            audioStream.pipe(res);
+            
+            audioStream.on('error', (err) => {
+                console.error('Stream error:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'خطأ في التدفق' });
+                }
+            });
         }
         
-        // 3. نرجع الرابط للواجهة عشان المتصفح يفتحه
-        res.json({
-            success: true,
-            downloadUrl: directUrl, // الرابط السحري من سيرفرات جوجل
-            filename: `${title}.${fileExt}`
-        });
-        
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'فشل استخراج رابط التحميل: ' + error.message });
+        console.error('Download error:', error);
+        res.status(500).json({ error: 'فشل التحميل: ' + error.message });
     }
 });
 
-// Validate endpoint (نفس الكود القديم)
+// Validate endpoint
 app.post('/validate', async (req, res) => {
     try {
         const { url } = req.body;
@@ -97,12 +118,10 @@ app.post('/validate', async (req, res) => {
     }
 });
 
-// Serve frontend
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-    console.log(`✅ Server ready on http://localhost:${PORT}`);
-    console.log(`🎯 New endpoint: /get-link?url=VIDEO_URL&type=mp4`);
+    console.log(`🚀 Server on http://localhost:${PORT}`);
 });
