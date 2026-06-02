@@ -294,65 +294,85 @@
         
         async function downloadMedia(type) {
             const url = urlInput.value.trim();
-            if (!url) return showMessage('الرجاء إدخال رابط الفيديو', 'error');
+            if (!url) {
+                showMessage('الرجاء إدخال رابط الفيديو', 'error');
+                return;
+            }
             
             setLoading(true);
             
             try {
-                // 1. نطلب من السيرفر الرابط المباشر للملف
-                const response = await fetch(`/get-link?url=${encodeURIComponent(url)}&type=${type}`);
-                const data = await response.json();
+                // التحقق أولاً
+                const validateRes = await fetch('/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                const validation = await validateRes.json();
                 
-                if (!data.success) {
-                    throw new Error(data.error);
+                if (!validation.isValid) {
+                    showMessage(validation.error || 'رابط غير صالح', 'error');
+                    setLoading(false);
+                    return;
                 }
                 
-                // 2. نفتح الرابط المباشر في تبويب جديد عشان يبدأ التحميل فوراً
-                // ده بيحل مشكلة الوقت والمساحة لأن Vercel مش هو اللي بينقل الملف
+                // بدء التحميل المباشر
+                const downloadUrl = `/download-stream?url=${encodeURIComponent(url)}&type=${type}`;
+                
+                // طريقة مباشرة للتحميل
                 const link = document.createElement('a');
-                link.href = data.downloadUrl;
-                link.download = data.filename; // اسم الملف
+                link.href = downloadUrl;
+                link.download = '';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                showMessage(`✅ بدء تحميل: ${data.filename}`, 'success');
+                showMessage(`بدء تحميل ${type.toUpperCase()}...`, 'success');
+                
+                setTimeout(() => {
+                    setLoading(false);
+                }, 2000);
                 
             } catch (error) {
-                console.error(error);
+                console.error('Download error:', error);
                 showMessage('فشل التحميل: ' + error.message, 'error');
-            } finally {
                 setLoading(false);
             }
         }
         
-        // ربط الأزرار
         mp4Btn.addEventListener('click', () => downloadMedia('mp4'));
         mp3Btn.addEventListener('click', () => downloadMedia('mp3'));
         
-        // التحقق التلقائي من الرابط (نفس الكود القديم)
+        // Auto validate
         let timeout;
         urlInput.addEventListener('input', (e) => {
             clearTimeout(timeout);
             const url = e.target.value.trim();
+            
             if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
                 timeout = setTimeout(async () => {
-                    const response = await fetch('/validate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url })
-                    });
-                    const validation = await response.json();
-                    if (validation.isValid && validation.platform === 'youtube') {
-                        const minutes = Math.floor(validation.duration / 60);
-                        const seconds = validation.duration % 60;
-                        videoInfoDiv.innerHTML = `
-                            <img src="${validation.thumbnail}" alt="Thumbnail">
-                            <div class="video-title">🎬 ${validation.title}</div>
-                            <div class="video-details">⏱️ المدة: ${minutes}:${seconds.toString().padStart(2, '0')}</div>
-                        `;
-                        videoInfoDiv.classList.add('show');
-                    } else {
+                    try {
+                        const response = await fetch('/validate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url })
+                        });
+                        const validation = await response.json();
+                        
+                        if (validation.isValid && validation.platform === 'youtube') {
+                            const minutes = Math.floor(validation.duration / 60);
+                            const seconds = validation.duration % 60;
+                            videoInfoDiv.innerHTML = `
+                                <img src="${validation.thumbnail}" alt="Thumbnail">
+                                <div class="video-title">🎬 ${validation.title}</div>
+                                <div class="video-details">⏱️ ${minutes}:${seconds.toString().padStart(2, '0')} | 👤 ${validation.author}</div>
+                            `;
+                            videoInfoDiv.classList.add('show');
+                        } else {
+                            videoInfoDiv.classList.remove('show');
+                        }
+                    } catch (err) {
+                        console.error('Validation error:', err);
                         videoInfoDiv.classList.remove('show');
                     }
                 }, 500);
