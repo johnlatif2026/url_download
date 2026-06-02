@@ -1,8 +1,8 @@
 const express = require('express');
 const ytdl = require('ytdl-core');
 const cors = require('cors');
+const path = require('path');
 const dotenv = require('dotenv');
-const axios = require('axios');
 
 dotenv.config();
 
@@ -12,7 +12,10 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper function to validate URL and extract platform
 async function validateUrl(url) {
@@ -25,12 +28,12 @@ async function validateUrl(url) {
                 platform: 'youtube',
                 title: info.videoDetails.title,
                 duration: info.videoDetails.lengthSeconds,
-                thumbnail: info.videoDetails.thumbnails[0].url
+                thumbnail: info.videoDetails.thumbnails[0]?.url || '',
+                author: info.videoDetails.author.name
             };
         }
         
-        // For other platforms (TikTok, Instagram, Facebook, Twitter)
-        // Note: These require additional APIs or services
+        // For other platforms
         const urlPatterns = {
             tiktok: /(tiktok\.com)/i,
             instagram: /(instagram\.com)/i,
@@ -51,13 +54,14 @@ async function validateUrl(url) {
                 isValid: true,
                 platform: platform,
                 title: `${platform.toUpperCase()} Video`,
-                message: `Support for ${platform} requires API integration. For now, YouTube is fully supported.`
+                message: `🚧 دعم ${platform} قيد التطوير. يرجى استخدام روابط YouTube حالياً`
             };
         }
         
-        return { isValid: false, error: 'Unsupported URL format' };
+        return { isValid: false, error: '❌ الرابط غير صالح. يرجى التأكد من الرابط' };
     } catch (error) {
-        return { isValid: false, error: 'Invalid URL or network error' };
+        console.error('Validation error:', error);
+        return { isValid: false, error: '❌ حدث خطأ في التحقق من الرابط' };
     }
 }
 
@@ -66,13 +70,15 @@ app.get('/download', async (req, res) => {
     try {
         const { url, type } = req.query;
         
+        console.log(`Download request: ${type} - ${url}`);
+        
         // Validate input
         if (!url) {
-            return res.status(400).json({ error: 'URL parameter is required' });
+            return res.status(400).json({ error: 'الرجاء إدخال رابط الفيديو' });
         }
         
         if (!type || !['mp4', 'mp3'].includes(type)) {
-            return res.status(400).json({ error: 'Type must be either mp4 or mp3' });
+            return res.status(400).json({ error: 'نوع التحميل غير صحيح' });
         }
         
         // Validate URL
@@ -85,20 +91,34 @@ app.get('/download', async (req, res) => {
         if (validation.platform === 'youtube') {
             try {
                 const info = await ytdl.getInfo(url);
-                const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
+                // Clean filename
+                let title = info.videoDetails.title
+                    .replace(/[^\w\s\u0600-\u06FF]/gi, '')
+                    .substring(0, 100);
                 
                 if (type === 'mp4') {
-                    // Get video format with both video and audio
-                    const format = ytdl.chooseFormat(info.formats, { 
-                        quality: '18', // 360p MP4 with audio
+                    // Get video format (try 18 first, then 22, then any with audio)
+                    let format = ytdl.chooseFormat(info.formats, { 
+                        quality: '18',
                         filter: 'audioandvideo'
                     });
                     
                     if (!format) {
-                        return res.status(404).json({ error: 'No suitable video format found' });
+                        format = ytdl.chooseFormat(info.formats, { 
+                            quality: '22',
+                            filter: 'audioandvideo'
+                        });
                     }
                     
-                    res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+                    if (!format) {
+                        format = info.formats.find(f => f.hasVideo && f.hasAudio);
+                    }
+                    
+                    if (!format) {
+                        return res.status(404).json({ error: 'لم يتم العثور على صيغة فيديو مناسبة' });
+                    }
+                    
+                    res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp4`);
                     res.header('Content-Type', 'video/mp4');
                     
                     const stream = ytdl(url, { format: format });
@@ -107,22 +127,22 @@ app.get('/download', async (req, res) => {
                     stream.on('error', (error) => {
                         console.error('Stream error:', error);
                         if (!res.headersSent) {
-                            res.status(500).json({ error: 'Error streaming video' });
+                            res.status(500).json({ error: 'خطأ في تدفق الفيديو' });
                         }
                     });
                     
                 } else if (type === 'mp3') {
                     // Get audio only format
                     const audioFormat = ytdl.chooseFormat(info.formats, { 
-                        quality: '140', // m4a audio
+                        quality: '140',
                         filter: 'audioonly'
                     });
                     
                     if (!audioFormat) {
-                        return res.status(404).json({ error: 'No audio format found' });
+                        return res.status(404).json({ error: 'لم يتم العثور على صيغة صوتية مناسبة' });
                     }
                     
-                    res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+                    res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp3`);
                     res.header('Content-Type', 'audio/mpeg');
                     
                     const stream = ytdl(url, { format: audioFormat });
@@ -131,58 +151,61 @@ app.get('/download', async (req, res) => {
                     stream.on('error', (error) => {
                         console.error('Stream error:', error);
                         if (!res.headersSent) {
-                            res.status(500).json({ error: 'Error streaming audio' });
+                            res.status(500).json({ error: 'خطأ في تدفق الصوت' });
                         }
                     });
                 }
             } catch (error) {
                 console.error('Download error:', error);
-                res.status(500).json({ error: 'Error processing download: ' + error.message });
+                res.status(500).json({ error: 'حدث خطأ أثناء التحميل: ' + error.message });
             }
         } else {
-            // For other platforms, return a message about limitations
             res.status(501).json({ 
-                error: `Full support for ${validation.platform} requires third-party API integration. For now, please use YouTube URLs.`,
-                message: validation.message
+                error: `⚠️ دعم ${validation.platform} قيد التطوير حالياً`,
+                message: 'يرجى استخدام روابط YouTube للتحميل الفوري'
             });
         }
         
     } catch (error) {
         console.error('Server error:', error);
-        res.status(500).json({ error: 'Internal server error: ' + error.message });
+        res.status(500).json({ error: 'خطأ داخلي في الخادم' });
     }
 });
 
-// Validate URL endpoint (for real-time validation)
+// Validate URL endpoint
 app.post('/validate', async (req, res) => {
     try {
         const { url } = req.body;
         
         if (!url) {
-            return res.status(400).json({ error: 'URL is required' });
+            return res.status(400).json({ error: 'الرابط مطلوب' });
         }
         
         const validation = await validateUrl(url);
         res.json(validation);
     } catch (error) {
-        res.status(500).json({ error: 'Validation error' });
+        console.error('Validation endpoint error:', error);
+        res.status(500).json({ error: 'خطأ في التحقق من الرابط' });
     }
 });
 
 // Serve the main HTML file
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Catch-all route for client-side routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
+    res.status(500).json({ error: 'حدث خطأ غير متوقع' });
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Visit http://localhost:${PORT}`);
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log(`📥 Media Downloader is ready to use`);
 });
-
-module.exports = app;
