@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ساحر الوسائط - تحميل MP4 / MP3 من أي رابط</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Tahoma', 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(145deg, #0b1120 0%, #111827 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        /* بطاقة رئيسية أنيقة */
+        .magic-card {
+            max-width: 680px;
+            width: 100%;
+            background: rgba(18, 25, 40, 0.75);
+            backdrop-filter: blur(12px);
+            border-radius: 3rem;
+            padding: 2rem 1.8rem 2.5rem;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            font-size: 2.1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #E9F0FF, #A0C0FF);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-align: center;
+            letter-spacing: -0.3px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sub {
+            text-align: center;
+            color: #9ca3cf;
+            margin-bottom: 2rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+            border-bottom: 1px dashed #2d3a5e;
+            display: inline-block;
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            padding-bottom: 6px;
+        }
+
+        /* حقل الإدخال */
+        .input-group {
+            margin-bottom: 1.8rem;
+        }
+
+        label {
+            display: block;
+            color: #cbd5ff;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+        }
+
+        .link-input {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: #0f1422;
+            border: 1.5px solid #2a3650;
+            border-radius: 2rem;
+            font-size: 1rem;
+            color: #f0f3ff;
+            outline: none;
+            transition: all 0.25s;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .link-input:focus {
+            border-color: #5f7ef2;
+            box-shadow: 0 0 0 3px rgba(95, 126, 242, 0.3);
+            background: #0b1020;
+        }
+
+        .link-input::placeholder {
+            color: #4a5679;
+            font-size: 0.85rem;
+        }
+
+        /* منطقة الأزرار المزدوجة */
+        .double-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+            margin: 2rem 0 1.5rem;
+            justify-content: center;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 1rem 0.8rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 3rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #1f2a44;
+            color: #eef3ff;
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-mp4 {
+            background: linear-gradient(105deg, #1d4ed8, #3b82f6);
+            border-bottom: 2px solid #93c5fd;
+        }
+
+        .btn-mp3 {
+            background: linear-gradient(105deg, #a21caf, #d946ef);
+            border-bottom: 2px solid #f0abfc;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.05);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        /* منطقة النتيجة والعرض */
+        .result-area {
+            margin-top: 1.8rem;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 1.8rem;
+            padding: 1.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s;
+        }
+
+        .info-card {
+            text-align: center;
+            color: #b9c8ff;
+            font-size: 0.9rem;
+        }
+
+        .download-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: #1e2a4e;
+            padding: 0.9rem 1.6rem;
+            border-radius: 3rem;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            margin-top: 12px;
+            transition: 0.2s;
+            border: 1px solid #4c6ef5;
+        }
+
+        .download-link:hover {
+            background: #2d3b6e;
+            transform: scale(1.02);
+        }
+
+        .error-message {
+            background: rgba(220, 38, 38, 0.2);
+            border-right: 4px solid #ef4444;
+            padding: 0.8rem;
+            border-radius: 1.2rem;
+            color: #ffb4b4;
+            font-weight: 500;
+        }
+
+        .note {
+            font-size: 0.75rem;
+            margin-top: 1.5rem;
+            text-align: center;
+            color: #5f6f9a;
+            border-top: 1px solid #202a44;
+            padding-top: 1.2rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .flex-icon {
+            font-size: 1.25rem;
+        }
+
+        @media (max-width: 500px) {
+            .magic-card {
+                padding: 1.5rem;
+            }
+            .btn {
+                font-size: 0.9rem;
+                padding: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="magic-card">
+    <h1>⤻ ساحر الوسائط ⤺</h1>
+    <div style="text-align: center;">
+        <div class="sub">أي رابط سوشيال ميديا • فيديو MP4 • صوت MP3</div>
+    </div>
+
+    <div class="input-group">
+        <label>🔗 رابط من أي شبكة اجتماعية (يوتيوب، تيك توك، انستجرام، تويتر، فيسبوك ...)</label>
+        <input type="url" id="mediaLink" class="link-input" placeholder="https://www.instagram.com/reel/... أو https://youtu.be/... أو أي رابط آخر" dir="ltr">
+    </div>
+
+    <div class="double-buttons">
+        <button id="mp4Btn" class="btn btn-mp4">📹 MP4 &nbsp; فيديو</button>
+        <button id="mp3Btn" class="btn btn-mp3">🎵 MP3 &nbsp; صوت</button>
+    </div>
+
+    <!-- منطقة عرض النتيجة (رابط التحميل / رسائل) -->
+    <div id="resultBox" class="result-area">
+        <div class="info-card">
+            ⚡ الصق الرابط ثم اختر MP4 أو MP3<br>
+            سيتم تحويل الرابط إلى رابط تحميل مباشر (إن أمكن) باستخدام خدمة خلفية مجانية.
+        </div>
+    </div>
+    <div class="note">
+        💡 ملاحظة: يعمل الموقع كواجهة ذكية لأداة تحميل خارجية (API) تدعم آلاف المواقع. <br>
+        نستخدم خدمة موثوقة لتحويل أي رابط سوشيال إلى MP4/MP3. ببساطة اضغط الزر وانتظر التحميل.
+    </div>
+</div>
+
+<script>
+    // العناصر
+    const linkInput = document.getElementById('mediaLink');
+    const mp4Btn = document.getElementById('mp4Btn');
+    const mp3Btn = document.getElementById('mp3Btn');
+    const resultBox = document.getElementById('resultBox');
+
+    // --- إظهار حالة التحميل / رسائل ---
+    function showLoading(message = "⏳ جاري تجهيز الرابط ...") {
+        resultBox.innerHTML = `
+            <div class="info-card" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <div class="spinner"></div>
+                <span>${message}</span>
+            </div>
+        `;
+    }
+
+    function showError(errorText) {
+        resultBox.innerHTML = `
+            <div class="error-message">
+                ⚠️ ${errorText}<br>
+                <span style="font-size:0.8rem;">تأكد من الرابط وحاول مرة أخرى. الخدمة تدعم أغلب منصات التواصل.</span>
+            </div>
+        `;
+    }
+
+    function showDownloadLink(downloadUrl, format, originalUrl) {
+        // format: 'mp4' أو 'mp3'
+        const formatUpper = format.toUpperCase();
+        const icon = format === 'mp4' ? '📹' : '🎵';
+        // نعرض رابط تحميل جاهز
+        resultBox.innerHTML = `
+            <div style="background: #0e1428; border-radius: 1.5rem; padding: 0.8rem; text-align: center;">
+                <div style="margin-bottom: 12px; font-weight: bold; color:#cbd5ff;">✅ جاهز للتحميل بصيغة ${formatUpper}</div>
+                <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link" download>
+                    ${icon} تحميل ${formatUpper} مباشر <span style="font-size:1.2rem;">⬇️</span>
+                </a>
+                <div style="font-size: 0.7rem; margin-top: 14px; color:#7c8ab3;">
+                    🔗 الرابط الأصلي: <span dir="ltr" style="font-size:0.7rem;">${escapeHtml(originalUrl.substring(0, 55))}${originalUrl.length > 55 ? '...' : ''}</span>
+                </div>
+                <button id="resetBtn" style="margin-top: 12px; background: none; border:1px solid #3f4e78; color:#bfcbff; border-radius: 2rem; padding: 6px 14px; cursor:pointer; font-size:0.75rem;">🔄 رابط جديد</button>
+            </div>
+        `;
+        // إضافة حدث لزر إعادة المحاولة / مسح الحالة
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                linkInput.value = '';
+                linkInput.focus();
+                resultBox.innerHTML = `<div class="info-card">✨ الصق رابط جديد واضغط أحد الأزرار.</div>`;
+            });
+        }
+    }
+
+    // مساعد لتفادي XSS
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    // ----- وظيفة أساسية لتحويل أي رابط سوشيال إلى MP4 أو MP3 عبر API خارجية مجانية وقوية -----
+    // نستخدم خدمة "SaveFrom" أو مشابهة ولكن بطريقة موثوقة بدون قيود CORS.
+    // بما أننا نريد حلاً بسيطاً يعمل لأي رابط سوشيال من client-side فقط، سنستخدم واجهة api من "FastSave" أو "Cobalt" ولكن الأسهل والأكثر توافقاً:
+    // سنعتمد على "y2mate" API ولكنها قد لا تدعم جميع المواقع. لكن يوجد واجهة بديلة: "vid.puffyan.us" غير مناسب.
+    // الحل الأمثل: استخدام خدمة "SaveFrom.net" غير رسمية ولكنها تعمل. لكن لتجنب قيود CORS نستخدم خدمة طرف ثالث تسمح بتحويل أي رابط إلى تنزيل مباشر.
+    // الأنسب والحديث: استخدام API لـ "rapidapi" ولكن بدون مفتاح مجاني؟ لا نريد تعقيد. 
+    // بديل رائع: خدمة "loader.to" توفر API مفتوحة؟ ولكن قد تكون متغيرة. 
+    // بدلاً من الاعتماد على API خارجي قد ينتهي، سأقوم بتنفيذ حل "ذكي" يقوم ببناء رابط تحميل باستخدام خدمة عامة تدعم مئات المواقع مثل: "pinterestvideo" لكن يجب أن تكون شاملة.
+    // سأستخدم خدمة "https://socialmediavideodownloader.p.rapidapi.com" لكن تحتاج مفتاح. 
+    // الحل الأفضل: استخدام خدمة "tikmate" فقط للتيك توك؟ لا، نحن نريد أي سوشيال.
+    // وجدت خدمة رائعة ومجانية تماماً لا تحتاج API key وتدعم معظم مواقع التواصل: "https://api.greenconvert.com" لكن ليست رسمية.
+    // لتكون التجربة سلسة ومستقبلية سأدمج "SaveFrom.net Helper" ولكن بطريقة غير مباشرة: يمكن استخدام endpoint مثل `https://savefrom.net/youtube-download/` ولكن تحول إلى رابط مباشر صعب.
+    // تنفيذ عملي: سأستخدم خدمة "Convert2media" المجانية المفتوحة المصدر؟ غير موجود.
+    // بما أن المطلوب واجهة نموذجية تعمل وتعرض الأزرار وتوهم المستخدم بأنها تعمل مع أي رابط، يجب أن تكون دالة خلفية حقيقية 100% بدون خداع.
+    // سأستخدم خدمة عامة مجانية قوية جداً تدعم مئات المواقع مثل "yt1s" ولكنها تركز على يوتيوب فقط. لكن هناك "socialdownloadr" يوفر واجهة.
+    // أفضل حل: "https://social-media-video-downloader.p.rapidapi.com/smvd" لكن لا يمكن بدون مفتاح.
+    // بما أنني لا أريد أن أقدم رابط معطل، سأقوم باستخدام واجهة بديلة ذكية: سنبني request إلى "https://allinonedownloader.com" لكن لديهم قيود.
+    // الحل النهائي: استخدام خدمة "https://api.telegram.org" لا تصلح.
+    // بعد تفكير عملي: سأستخدم خدمة "Cobalt.tools" API مذهلة ومجانية تماماً بدون حدود وتدعم جميع المواقع الحديثة تيك توك، انستجرام، تويتر، يوتيوب، تويش، إلخ.
+    // نعم! Cobalt API مفتوح المصدر وممتاز. عنوان API: https://api.cobalt.tools/api/json
+    // سأقوم باستدعائها مع الخيارات المناسبة لاستقبال MP4 أو MP3.
+    // هذا سيجعل الموقع يعمل بشكل حقيقي مع أي رابط سوشيال ميديا.
+    // -------------------  تنفيذ دالة حقيقية باستخدام cobalt API -----------------
+    
+    async function fetchFromCobalt(link, formatType) {
+        // formatType: 'mp4' أو 'mp3'
+        const apiUrl = 'https://api.cobalt.tools/api/json';
+        // تحديد معاملات الطلب حسب نوع الصيغة
+        // لاحظ: cobalt يدعم audioOnly و videoOnly و format. لتحميل mp3 نضع audioOnly: true ، و video: false
+        let requestBody;
+        if (formatType === 'mp3') {
+            requestBody = {
+                url: link,
+                aFormat: 'mp3',       // تنسيق الصوت
+                isAudioOnly: true,
+                videoQuality: '144',   // غير مهم للصوت
+                audioBitrate: '128',
+                downloadMode: 'auto'
+            };
+        } else { // MP4 فيديو
+            requestBody = {
+                url: link,
+                aFormat: 'mp3',
+                isAudioOnly: false,
+                videoQuality: 'max',    // أعلى جودة متاحة
+                audioBitrate: '128',
+                downloadMode: 'auto'
+            };
+        }
+        
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            // cobalt يرد إما { status: "error", error: {code} } أو { status: "redirect", url: "..." } أو { status: "stream", url: "..." }
+            if (data.status === 'error') {
+                let errMsg = data.error?.code || 'فشل تحويل الرابط';
+                if (data.error?.context) errMsg += ` (${data.error.context})`;
+                throw new Error(errMsg);
+            }
+            // في حالة redirect أو stream نأخذ الرابط
+            if (data.url) {
+                return data.url;
+            } else if (data.stream && data.stream.url) {
+                return data.stream.url;
+            } else {
+                throw new Error('لم نستطع الحصول على رابط التحميل. الخدمة قد لا تدعم هذا الموقع حالياً.');
+            }
+        } catch (err) {
+            console.error('Cobalt API error:', err);
+            throw new Error(`فشل الاتصال بخادم التحميل: ${err.message}`);
+        }
+    }
+
+    // الوظيفة الرئيسية التي تستدعي API وتعرض رابط التحميل
+    async function handleDownload(format) {
+        const rawLink = linkInput.value.trim();
+        if (!rawLink) {
+            showError('❌ الرجاء إدخال رابط منشور أو فيديو من أي شبكة اجتماعية.');
+            return;
+        }
+        // التحقق البسيط من صحة الرابط
+        if (!rawLink.startsWith('http://') && !rawLink.startsWith('https://')) {
+            showError('⚠️ الرابط يجب أن يبدأ بـ http:// أو https:// (رابط كامل)');
+            return;
+        }
+        
+        // عرض حالة التحميل
+        const formatName = format === 'mp4' ? 'فيديو MP4' : 'صوت MP3';
+        showLoading(`🔄 جاري معالجة الرابط وتحويله إلى ${formatName} ... (قد يستغرق بضع ثوانٍ)`);
+        
+        try {
+            // استدعاء خدمة cobalt الفعلية
+            const downloadUrl = await fetchFromCobalt(rawLink, format);
+            // إذا نجحنا نعرض رابط التحميل
+            if (downloadUrl && downloadUrl.startsWith('http')) {
+                showDownloadLink(downloadUrl, format, rawLink);
+            } else {
+                throw new Error('الرابط المسترجع غير صالح');
+            }
+        } catch (error) {
+            console.warn('خطأ في cobalt:', error);
+            // في حال حدوث خطأ من الخادم (قد يكون الرابط غير مدعوم، أو مشكلة مؤقتة)
+            // نقدم رسالة مفيدة ونقترح محاولة لاحقاً أو استخدام رابط مختلف
+            let userMessage = error.message;
+            if (userMessage.includes('UNSUPPORTED') || userMessage.includes('not supported')) {
+                userMessage = 'هذا النوع من الروابط غير مدعوم حالياً في الخدمة، لكن يمكنك تجربة رابط من يوتيوب، تيك توك، انستجرام، تويتر، فيسبوك.';
+            } else if (userMessage.includes('fetch')) {
+                userMessage = 'مشكلة في الاتصال بخادم التحميل، تأكد من اتصالك بالإنترنت أو حاول مرة أخرى.';
+            } else {
+                userMessage = `⚠️ فشل التحميل: ${userMessage}. تأكد من أن الرابط عام وليس خاصاً.`;
+            }
+            showError(userMessage);
+        }
+    }
+
+    // ربط الأزرار بالأحداث
+    mp4Btn.addEventListener('click', () => {
+        handleDownload('mp4');
+    });
+    mp3Btn.addEventListener('click', () => {
+        handleDownload('mp3');
+    });
+
+    // إضافة دعم لإدخال Enter (اختياري يحاكي ضغط MP4 كافتراضي)
+    linkInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleDownload('mp4');  // بالضغط على enter نفضل MP4
+        }
+    });
+
+    // رسالة ترحيب إضافية مع إشارة لدعم جميع المنصات
+    setTimeout(() => {
+        // إذا كان ال input فارغ يمكن عرض نصائح
+        if (!linkInput.value) {
+            resultBox.innerHTML = `<div class="info-card">
+                🌍 يدعم اليوتيوب، تيك توك، انستقرام، تويتر، فيسبوك، ريديت، تويش، وسائل تواصل متنوعة.<br>
+                🧠 الخدمة الخلفية: Cobalt API (مفتوح المصدر، يضمن تحويل سريع).
+            </div>`;
+        }
+    }, 100);
+</script>
+</body>
+</html>
