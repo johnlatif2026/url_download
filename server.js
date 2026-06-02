@@ -194,6 +194,17 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// For Vercel serverless deployment
+if (process.env.VERCEL) {
+    module.exports = app;
+} else {
+    // Local development
+    app.listen(PORT, () => {
+        console.log(`🚀 Server is running on http://localhost:${PORT}`);
+        console.log(`📥 Media Downloader is ready to use`);
+    });
+}
+
 // Catch-all route for client-side routing
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -205,7 +216,9 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'حدث خطأ غير متوقع' });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-    console.log(`📥 Media Downloader is ready to use`);
-});
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server is running on http://localhost:${PORT}`);
+        console.log(`📥 Media Downloader is ready to use`);
+    });
+}
