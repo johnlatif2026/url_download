@@ -1,423 +1,77 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ساحر الوسائط - تحميل MP4 / MP3</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: system-ui, 'Segoe UI', 'Cairo', sans-serif;
-        }
+<meta charset="UTF-8">
+<title>تحميل MP4 / MP3</title>
 
-        body {
-            background: linear-gradient(145deg, #0b1120 0%, #111827 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1.5rem;
-        }
+<style>
+body{
+    background:#0f172a;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    font-family:system-ui;
+}
 
-        .magic-card {
-            max-width: 680px;
-            width: 100%;
-            background: rgba(18, 25, 40, 0.75);
-            backdrop-filter: blur(12px);
-            border-radius: 3rem;
-            padding: 2rem 1.8rem 2.5rem;
-            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+.box{
+    width:400px;
+    background:#111827;
+    padding:20px;
+    border-radius:20px;
+    text-align:center;
+}
 
-        h1 {
-            font-size: 2.1rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #E9F0FF, #A0C0FF);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            text-align: center;
-        }
+input{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:10px;
+    border:none;
+}
 
-        .sub {
-            text-align: center;
-            color: #9ca3cf;
-            margin: 0.5rem 0 2rem 0;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
+button{
+    width:48%;
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
 
-        .input-group {
-            margin-bottom: 1.8rem;
-        }
-
-        label {
-            display: block;
-            color: #cbd5ff;
-            font-weight: 600;
-            margin-bottom: 0.6rem;
-        }
-
-        .link-input {
-            width: 100%;
-            padding: 1rem 1.2rem;
-            background: #0f1422;
-            border: 1.5px solid #2a3650;
-            border-radius: 2rem;
-            font-size: 1rem;
-            color: #f0f3ff;
-            outline: none;
-            direction: ltr;
-            text-align: left;
-        }
-
-        .link-input:focus {
-            border-color: #5f7ef2;
-            box-shadow: 0 0 0 3px rgba(95, 126, 242, 0.3);
-        }
-
-        .double-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1.2rem;
-            margin: 2rem 0 1.5rem;
-            justify-content: center;
-        }
-
-        .btn {
-            flex: 1;
-            min-width: 140px;
-            padding: 1rem 0.8rem;
-            font-weight: 700;
-            font-size: 1.1rem;
-            border: none;
-            border-radius: 3rem;
-            cursor: pointer;
-            transition: transform 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            color: white;
-        }
-
-        .btn-mp4 {
-            background: linear-gradient(105deg, #1d4ed8, #3b82f6);
-        }
-
-        .btn-mp3 {
-            background: linear-gradient(105deg, #a21caf, #d946ef);
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            filter: brightness(1.05);
-        }
-
-        .result-area {
-            margin-top: 1.8rem;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 1.8rem;
-            padding: 1.2rem;
-        }
-
-        .info-card {
-            text-align: center;
-            color: #b9c8ff;
-            font-size: 0.9rem;
-        }
-
-        .service-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .service-btn {
-            background: #1e2a4e;
-            padding: 12px;
-            border-radius: 2rem;
-            text-decoration: none;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: 0.2s;
-            border: 1px solid #4c6ef5;
-            cursor: pointer;
-        }
-
-        .service-btn:hover {
-            background: #2d3b6e;
-            transform: scale(1.02);
-        }
-
-        .error-message {
-            background: rgba(220, 38, 38, 0.2);
-            border-right: 4px solid #ef4444;
-            padding: 0.8rem;
-            border-radius: 1.2rem;
-            color: #ffb4b4;
-        }
-
-        .note {
-            font-size: 0.75rem;
-            margin-top: 1.5rem;
-            text-align: center;
-            color: #5f6f9a;
-            border-top: 1px solid #202a44;
-            padding-top: 1.2rem;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
+.mp4{background:#3b82f6;color:white;}
+.mp3{background:#a855f7;color:white;}
+</style>
 </head>
+
 <body>
 
-<div class="magic-card">
-    <h1>📥 ساحر الوسائط</h1>
-    <div class="sub">أفضل مواقع تحميل من السوشيال ميديا</div>
+<div class="box">
+    <h2>تحميل الفيديو / الصوت</h2>
 
-    <div class="input-group">
-        <label>🔗 الصق الرابط هنا</label>
-        <input type="text" id="mediaLink" class="link-input" placeholder="https://youtube.com/watch?v=... أو https://tiktok.com/..." dir="ltr">
-    </div>
+    <input id="url" placeholder="ضع الرابط هنا">
 
-    <div class="double-buttons">
-        <button id="mp4Btn" class="btn btn-mp4">📹 تحميل فيديو MP4</button>
-        <button id="mp3Btn" class="btn btn-mp3">🎵 تحميل صوت MP3</button>
-    </div>
-
-    <div id="resultBox" class="result-area">
-        <div class="info-card">
-            🔍 اختر زر MP4 أو MP3<br>
-            سيتم نقلك إلى أفضل موقع تحميل للرابط الخاص بك
-        </div>
-    </div>
-    <div class="note">
-        💡 هذه المواقع هي أشهر خدمات تحميل الفيديو وتعمل مع يوتيوب، تيك توك، فيسبوك، انستجرام، تويتر
+    <div>
+        <button class="mp4" onclick="download('mp4')">MP4</button>
+        <button class="mp3" onclick="download('mp3')">MP3</button>
     </div>
 </div>
 
 <script>
-    const linkInput = document.getElementById('mediaLink');
-    const mp4Btn = document.getElementById('mp4Btn');
-    const mp3Btn = document.getElementById('mp3Btn');
-    const resultBox = document.getElementById('resultBox');
+const API = "https://YOUR-VERCEL-APP.vercel.app/download";
 
-    function detectPlatform(url) {
-        const u = url.toLowerCase();
-        if (u.includes('youtube.com') || u.includes('youtu.be')) return 'youtube';
-        if (u.includes('tiktok.com')) return 'tiktok';
-        if (u.includes('instagram.com')) return 'instagram';
-        if (u.includes('facebook.com') || u.includes('fb.com')) return 'facebook';
-        if (u.includes('twitter.com') || u.includes('x.com')) return 'twitter';
-        if (u.includes('reddit.com')) return 'reddit';
-        return 'other';
+function download(type){
+    const url = document.getElementById("url").value;
+
+    if(!url){
+        alert("حط الرابط");
+        return;
     }
 
-    function getServiceLinks(url, type) {
-        const platform = detectPlatform(url);
-        const encodedUrl = encodeURIComponent(url);
-        
-        // أفضل خدمات التحميل لكل منصة
-        const services = [];
-        
-        // خدمة عامة 1: SaveFrom.net (تدعم كل شيء)
-        services.push({
-            name: '⚡ SaveFrom.net',
-            url: `https://en.savefrom.net/1-youtube-video-downloader-3/?url=${encodedUrl}`,
-            description: 'أفضل خدمة شاملة'
-        });
-        
-        // خدمة عامة 2: Y2mate (لليوتيوب وكل شيء)
-        services.push({
-            name: '🎬 Y2mate',
-            url: `https://y2mate.nu/en-MuH6/${encodedUrl}`,
-            description: 'يدعم يوتيوب وتيك توك'
-        });
-        
-        // حسب المنصة نضيف خدمات متخصصة
-        if (platform === 'youtube') {
-            services.push({
-                name: '📹 YT1s',
-                url: `https://yt1s.com/en/youtube-to-mp4?url=${encodedUrl}`,
-                description: 'لتحميل فيديو يوتيوب'
-            });
-            if (type === 'mp3') {
-                services.push({
-                    name: '🎵 YTMP3',
-                    url: `https://ytmp3.cc/ytmp3/?url=${encodedUrl}`,
-                    description: 'لتحميل صوت فقط'
-                });
-            }
-        }
-        
-        if (platform === 'tiktok') {
-            services.push({
-                name: '📱 TikMate',
-                url: `https://tikmate.online/tiktok-downloader?url=${encodedUrl}`,
-                description: 'لتحميل تيك توك بجودة عالية'
-            });
-            services.push({
-                name: '🔥 SSSTikTok',
-                url: `https://ssstik.io/ssstik?url=${encodedUrl}`,
-                description: 'تحميل تيك توك بدون علامة مائية'
-            });
-        }
-        
-        if (platform === 'instagram') {
-            services.push({
-                name: '📸 SaveInsta',
-                url: `https://saveinsta.app/en?url=${encodedUrl}`,
-                description: 'لتحميل فيديوهات انستجرام'
-            });
-            services.push({
-                name: '💾 InstaSave',
-                url: `https://instasave.io/downloader?url=${encodedUrl}`,
-                description: 'تحميل من الانستجرام'
-            });
-        }
-        
-        if (platform === 'facebook') {
-            services.push({
-                name: '📘 FBDown',
-                url: `https://fbdown.net/download.php?URL=${encodedUrl}`,
-                description: 'تحميل فيديوهات فيسبوك'
-            });
-        }
-        
-        if (platform === 'twitter') {
-            services.push({
-                name: '🐦 TWDown',
-                url: `https://twdown.net/download.php?url=${encodedUrl}`,
-                description: 'تحميل فيديوهات تويتر'
-            });
-        }
-        
-        // إضافة خدمة عامة أخيرة
-        services.push({
-            name: '🌐 SnapInsta',
-            url: `https://snapinsta.app/en?url=${encodedUrl}`,
-            description: 'يدعم انستجرام وتيك توك'
-        });
-        
-        return services;
-    }
-
-    function showServices(url, type) {
-        const services = getServiceLinks(url, type);
-        const typeName = type === 'mp4' ? 'فيديو MP4' : 'صوت MP3';
-        
-        let servicesHtml = `
-            <div style="text-align: center; margin-bottom: 15px;">
-                <div style="font-weight: bold; color:#cbd5ff; margin-bottom: 10px;">
-                    ✅ اختر أحد المواقع التالية لتحميل ${typeName}:
-                </div>
-                <div style="font-size: 0.75rem; color: #7c8ab3; margin-bottom: 15px;">
-                    المنصة: ${detectPlatform(url).toUpperCase()}
-                </div>
-            </div>
-            <div class="service-buttons">
-        `;
-        
-        services.forEach(service => {
-            servicesHtml += `
-                <a href="${service.url}" target="_blank" rel="noopener noreferrer" class="service-btn">
-                    ${service.name}
-                    <span style="font-size: 0.8rem;">→</span>
-                </a>
-                <div style="font-size: 0.7rem; color: #5f6f9a; margin-top: -8px; margin-bottom: 5px; text-align: center;">
-                    ${service.description}
-                </div>
-            `;
-        });
-        
-        servicesHtml += `
-            </div>
-            <button id="resetBtn" style="margin-top: 20px; background: none; border:1px solid #3f4e78; color:#bfcbff; border-radius: 2rem; padding: 8px 16px; cursor:pointer; font-size:0.75rem; width: 100%;">
-                🔄 رابط جديد
-            </button>
-        `;
-        
-        resultBox.innerHTML = servicesHtml;
-        
-        document.getElementById('resetBtn')?.addEventListener('click', () => {
-            linkInput.value = '';
-            linkInput.focus();
-            resultBox.innerHTML = `<div class="info-card">✨ الصق رابط جديد واضغط أحد الأزرار.</div>`;
-        });
-    }
-
-    function showError(errorText) {
-        resultBox.innerHTML = `
-            <div class="error-message">
-                ⚠️ ${errorText}<br>
-                <span style="font-size:0.8rem;">جرب واحداً من هذه الروابط بدلاً من ذلك:</span>
-                <div style="margin-top: 12px;">
-                    <a href="https://savemedia.app" target="_blank" style="color:#93c5fd;">savemedia.app</a> | 
-                    <a href="https://snaptik.app" target="_blank" style="color:#93c5fd;">snaptik.app</a> |
-                    <a href="https://y2mate.com" target="_blank" style="color:#93c5fd;">y2mate.com</a>
-                </div>
-            </div>
-        `;
-    }
-
-    function handleDownload(type) {
-        let url = linkInput.value.trim();
-        
-        if (!url) {
-            showError('❌ الرجاء إدخال رابط الفيديو');
-            return;
-        }
-        
-        if (!url.startsWith('http')) {
-            showError('⚠️ الرابط يجب أن يبدأ بـ http:// أو https://');
-            return;
-        }
-        
-        // تنظيف الرابط من أي مسافات أو أحرف إضافية
-        url = url.split(' ')[0];
-        
-        showServices(url, type);
-    }
-
-    mp4Btn.addEventListener('click', () => handleDownload('mp4'));
-    mp3Btn.addEventListener('click', () => handleDownload('mp3'));
-    
-    linkInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleDownload('mp4');
-    });
-    
-    // رسالة ترحيب
-    setTimeout(() => {
-        if (!linkInput.value) {
-            resultBox.innerHTML = `<div class="info-card">
-                🎯 أمثلة لروابط تعمل:<br>
-                <span dir="ltr" style="font-size: 0.7rem;">https://youtube.com/watch?v=...<br>
-                https://tiktok.com/@user/video/...<br>
-                https://instagram.com/reel/...</span>
-            </div>`;
-        }
-    }, 100);
+    window.open(`${API}?url=${encodeURIComponent(url)}&type=${type}`, "_blank");
+}
 </script>
+
 </body>
 </html>
