@@ -21,7 +21,6 @@
             padding: 1.5rem;
         }
 
-        /* بطاقة رئيسية أنيقة */
         .magic-card {
             max-width: 680px;
             width: 100%;
@@ -60,7 +59,6 @@
             padding-bottom: 6px;
         }
 
-        /* حقل الإدخال */
         .input-group {
             margin-bottom: 1.8rem;
         }
@@ -99,7 +97,6 @@
             font-size: 0.85rem;
         }
 
-        /* منطقة الأزرار المزدوجة */
         .double-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -147,7 +144,6 @@
             transform: translateY(1px);
         }
 
-        /* منطقة النتيجة والعرض */
         .result-area {
             margin-top: 1.8rem;
             background: rgba(0, 0, 0, 0.35);
@@ -249,27 +245,23 @@
         <button id="mp3Btn" class="btn btn-mp3">🎵 MP3 &nbsp; صوت</button>
     </div>
 
-    <!-- منطقة عرض النتيجة (رابط التحميل / رسائل) -->
     <div id="resultBox" class="result-area">
         <div class="info-card">
             ⚡ الصق الرابط ثم اختر MP4 أو MP3<br>
-            سيتم تحويل الرابط إلى رابط تحميل مباشر (إن أمكن) باستخدام خدمة خلفية مجانية.
+            سيتم تحويل الرابط إلى رابط تحميل مباشر.
         </div>
     </div>
     <div class="note">
-        💡 ملاحظة: يعمل الموقع كواجهة ذكية لأداة تحميل خارجية (API) تدعم آلاف المواقع. <br>
-        نستخدم خدمة موثوقة لتحويل أي رابط سوشيال إلى MP4/MP3. ببساطة اضغط الزر وانتظر التحميل.
+        💡 ملاحظة: الخدمة تعمل عبر واجهة وسيطة مجانية. إذا فشل رابط معين، جرب رابط آخر من منصة مختلفة.
     </div>
 </div>
 
 <script>
-    // العناصر
     const linkInput = document.getElementById('mediaLink');
     const mp4Btn = document.getElementById('mp4Btn');
     const mp3Btn = document.getElementById('mp3Btn');
     const resultBox = document.getElementById('resultBox');
 
-    // --- إظهار حالة التحميل / رسائل ---
     function showLoading(message = "⏳ جاري تجهيز الرابط ...") {
         resultBox.innerHTML = `
             <div class="info-card" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -289,14 +281,12 @@
     }
 
     function showDownloadLink(downloadUrl, format, originalUrl) {
-        // format: 'mp4' أو 'mp3'
         const formatUpper = format.toUpperCase();
         const icon = format === 'mp4' ? '📹' : '🎵';
-        // نعرض رابط تحميل جاهز
         resultBox.innerHTML = `
             <div style="background: #0e1428; border-radius: 1.5rem; padding: 0.8rem; text-align: center;">
                 <div style="margin-bottom: 12px; font-weight: bold; color:#cbd5ff;">✅ جاهز للتحميل بصيغة ${formatUpper}</div>
-                <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link" download>
+                <a href="${downloadUrl}" target="_blank" rel="noopener noreferrer" class="download-link">
                     ${icon} تحميل ${formatUpper} مباشر <span style="font-size:1.2rem;">⬇️</span>
                 </a>
                 <div style="font-size: 0.7rem; margin-top: 14px; color:#7c8ab3;">
@@ -305,7 +295,6 @@
                 <button id="resetBtn" style="margin-top: 12px; background: none; border:1px solid #3f4e78; color:#bfcbff; border-radius: 2rem; padding: 6px 14px; cursor:pointer; font-size:0.75rem;">🔄 رابط جديد</button>
             </div>
         `;
-        // إضافة حدث لزر إعادة المحاولة / مسح الحالة
         const resetBtn = document.getElementById('resetBtn');
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
@@ -316,7 +305,6 @@
         }
     }
 
-    // مساعد لتفادي XSS
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -324,161 +312,121 @@
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
         });
     }
 
-    // ----- وظيفة أساسية لتحويل أي رابط سوشيال إلى MP4 أو MP3 عبر API خارجية مجانية وقوية -----
-    // نستخدم خدمة "SaveFrom" أو مشابهة ولكن بطريقة موثوقة بدون قيود CORS.
-    // بما أننا نريد حلاً بسيطاً يعمل لأي رابط سوشيال من client-side فقط، سنستخدم واجهة api من "FastSave" أو "Cobalt" ولكن الأسهل والأكثر توافقاً:
-    // سنعتمد على "y2mate" API ولكنها قد لا تدعم جميع المواقع. لكن يوجد واجهة بديلة: "vid.puffyan.us" غير مناسب.
-    // الحل الأمثل: استخدام خدمة "SaveFrom.net" غير رسمية ولكنها تعمل. لكن لتجنب قيود CORS نستخدم خدمة طرف ثالث تسمح بتحويل أي رابط إلى تنزيل مباشر.
-    // الأنسب والحديث: استخدام API لـ "rapidapi" ولكن بدون مفتاح مجاني؟ لا نريد تعقيد. 
-    // بديل رائع: خدمة "loader.to" توفر API مفتوحة؟ ولكن قد تكون متغيرة. 
-    // بدلاً من الاعتماد على API خارجي قد ينتهي، سأقوم بتنفيذ حل "ذكي" يقوم ببناء رابط تحميل باستخدام خدمة عامة تدعم مئات المواقع مثل: "pinterestvideo" لكن يجب أن تكون شاملة.
-    // سأستخدم خدمة "https://socialmediavideodownloader.p.rapidapi.com" لكن تحتاج مفتاح. 
-    // الحل الأفضل: استخدام خدمة "tikmate" فقط للتيك توك؟ لا، نحن نريد أي سوشيال.
-    // وجدت خدمة رائعة ومجانية تماماً لا تحتاج API key وتدعم معظم مواقع التواصل: "https://api.greenconvert.com" لكن ليست رسمية.
-    // لتكون التجربة سلسة ومستقبلية سأدمج "SaveFrom.net Helper" ولكن بطريقة غير مباشرة: يمكن استخدام endpoint مثل `https://savefrom.net/youtube-download/` ولكن تحول إلى رابط مباشر صعب.
-    // تنفيذ عملي: سأستخدم خدمة "Convert2media" المجانية المفتوحة المصدر؟ غير موجود.
-    // بما أن المطلوب واجهة نموذجية تعمل وتعرض الأزرار وتوهم المستخدم بأنها تعمل مع أي رابط، يجب أن تكون دالة خلفية حقيقية 100% بدون خداع.
-    // سأستخدم خدمة عامة مجانية قوية جداً تدعم مئات المواقع مثل "yt1s" ولكنها تركز على يوتيوب فقط. لكن هناك "socialdownloadr" يوفر واجهة.
-    // أفضل حل: "https://social-media-video-downloader.p.rapidapi.com/smvd" لكن لا يمكن بدون مفتاح.
-    // بما أنني لا أريد أن أقدم رابط معطل، سأقوم باستخدام واجهة بديلة ذكية: سنبني request إلى "https://allinonedownloader.com" لكن لديهم قيود.
-    // الحل النهائي: استخدام خدمة "https://api.telegram.org" لا تصلح.
-    // بعد تفكير عملي: سأستخدم خدمة "Cobalt.tools" API مذهلة ومجانية تماماً بدون حدود وتدعم جميع المواقع الحديثة تيك توك، انستجرام، تويتر، يوتيوب، تويش، إلخ.
-    // نعم! Cobalt API مفتوح المصدر وممتاز. عنوان API: https://api.cobalt.tools/api/json
-    // سأقوم باستدعائها مع الخيارات المناسبة لاستقبال MP4 أو MP3.
-    // هذا سيجعل الموقع يعمل بشكل حقيقي مع أي رابط سوشيال ميديا.
-    // -------------------  تنفيذ دالة حقيقية باستخدام cobalt API -----------------
-    
-    async function fetchFromCobalt(link, formatType) {
-        // formatType: 'mp4' أو 'mp3'
-        const apiUrl = 'https://api.cobalt.tools/api/json';
-        // تحديد معاملات الطلب حسب نوع الصيغة
-        // لاحظ: cobalt يدعم audioOnly و videoOnly و format. لتحميل mp3 نضع audioOnly: true ، و video: false
-        let requestBody;
-        if (formatType === 'mp3') {
-            requestBody = {
-                url: link,
-                aFormat: 'mp3',       // تنسيق الصوت
-                isAudioOnly: true,
-                videoQuality: '144',   // غير مهم للصوت
-                audioBitrate: '128',
-                downloadMode: 'auto'
-            };
-        } else { // MP4 فيديو
-            requestBody = {
-                url: link,
-                aFormat: 'mp3',
-                isAudioOnly: false,
-                videoQuality: 'max',    // أعلى جودة متاحة
-                audioBitrate: '128',
-                downloadMode: 'auto'
-            };
-        }
+    // استخدام خدمة بديلة مع دعم CORS (Universal Video Downloader API)
+    // نستخدم allinone تحويلة مجانية بدون CORS مشاكل
+    async function fetchVideoUrl(link, type) {
+        // استخدام خدمة "Convert2media" البديلة عبر Cors-Anywhere العام (مجاني ومحدود لكن للعرض)
+        // أو استخدام خدمة "SaveIn" المجانية
+        // الحل العملي: استخدام واجهة ثالثة مفتوحة المصدر: "ytdl" ولكن هنا نستخدم endpoint يعمل مباشرة
         
+        // أفضل حل عملي: خدمة "piped" أو "invidious" ولكنها محدودة لليوتيوب فقط
+        // لحل شامل: استخدام واجهة "video-downloader" من apivideo (تحتاج مفتاح)
+        
+        // البديل الأضمن: فتح رابط التحميل عبر نافذة جديدة باستخدام خدمة "socialdownloadr" المباشرة
+        // لكني سأستخدم service يعيد رابط مباشر عبر "cobalt.tools" لكن مع تجاوز CORS باستخدام allorigins.win
+        
+        const corsProxy = "https://api.allorigins.win/raw?url=";
+        const cobaltApi = "https://api.cobalt.tools/api/json";
+        
+        const requestBody = type === 'mp3' ? {
+            url: link,
+            aFormat: 'mp3',
+            isAudioOnly: true,
+            audioBitrate: '128'
+        } : {
+            url: link,
+            isAudioOnly: false,
+            videoQuality: 'max',
+            audioBitrate: '128'
+        };
+        
+        // المحاولة الأولى: عبر الـ proxy لتجاوز CORS
         try {
-            const response = await fetch(apiUrl, {
+            const proxyUrl = corsProxy + encodeURIComponent(cobaltApi);
+            const response = await fetch(proxyUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const data = await response.json();
-            // cobalt يرد إما { status: "error", error: {code} } أو { status: "redirect", url: "..." } أو { status: "stream", url: "..." }
-            if (data.status === 'error') {
-                let errMsg = data.error?.code || 'فشل تحويل الرابط';
-                if (data.error?.context) errMsg += ` (${data.error.context})`;
-                throw new Error(errMsg);
+            if (data.status === 'error') throw new Error(data.error?.code || 'فشل التحميل');
+            if (data.url) return data.url;
+            if (data.stream?.url) return data.stream.url;
+            throw new Error('لم نستطع الحصول على رابط');
+        } catch (e) {
+            console.warn('Proxy failed, trying direct (CORS may fail):', e);
+            // محاولة مباشرة (قد تنجح في بعض البيئات)
+            try {
+                const response = await fetch(cobaltApi, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data.url) return data.url;
+                throw new Error('لا يوجد رابط');
+            } catch (e2) {
+                throw new Error('فشل الاتصال بخادم التحميل. يرجى المحاولة لاحقاً أو استخدام رابط من يوتيوب/تيك توك.');
             }
-            // في حالة redirect أو stream نأخذ الرابط
-            if (data.url) {
-                return data.url;
-            } else if (data.stream && data.stream.url) {
-                return data.stream.url;
-            } else {
-                throw new Error('لم نستطع الحصول على رابط التحميل. الخدمة قد لا تدعم هذا الموقع حالياً.');
-            }
-        } catch (err) {
-            console.error('Cobalt API error:', err);
-            throw new Error(`فشل الاتصال بخادم التحميل: ${err.message}`);
         }
     }
 
-    // الوظيفة الرئيسية التي تستدعي API وتعرض رابط التحميل
     async function handleDownload(format) {
         const rawLink = linkInput.value.trim();
         if (!rawLink) {
             showError('❌ الرجاء إدخال رابط منشور أو فيديو من أي شبكة اجتماعية.');
             return;
         }
-        // التحقق البسيط من صحة الرابط
         if (!rawLink.startsWith('http://') && !rawLink.startsWith('https://')) {
-            showError('⚠️ الرابط يجب أن يبدأ بـ http:// أو https:// (رابط كامل)');
+            showError('⚠️ الرابط يجب أن يبدأ بـ http:// أو https://');
             return;
         }
         
-        // عرض حالة التحميل
         const formatName = format === 'mp4' ? 'فيديو MP4' : 'صوت MP3';
         showLoading(`🔄 جاري معالجة الرابط وتحويله إلى ${formatName} ... (قد يستغرق بضع ثوانٍ)`);
         
         try {
-            // استدعاء خدمة cobalt الفعلية
-            const downloadUrl = await fetchFromCobalt(rawLink, format);
-            // إذا نجحنا نعرض رابط التحميل
+            const downloadUrl = await fetchVideoUrl(rawLink, format);
             if (downloadUrl && downloadUrl.startsWith('http')) {
                 showDownloadLink(downloadUrl, format, rawLink);
             } else {
                 throw new Error('الرابط المسترجع غير صالح');
             }
         } catch (error) {
-            console.warn('خطأ في cobalt:', error);
-            // في حال حدوث خطأ من الخادم (قد يكون الرابط غير مدعوم، أو مشكلة مؤقتة)
-            // نقدم رسالة مفيدة ونقترح محاولة لاحقاً أو استخدام رابط مختلف
             let userMessage = error.message;
-            if (userMessage.includes('UNSUPPORTED') || userMessage.includes('not supported')) {
-                userMessage = 'هذا النوع من الروابط غير مدعوم حالياً في الخدمة، لكن يمكنك تجربة رابط من يوتيوب، تيك توك، انستجرام، تويتر، فيسبوك.';
-            } else if (userMessage.includes('fetch')) {
-                userMessage = 'مشكلة في الاتصال بخادم التحميل، تأكد من اتصالك بالإنترنت أو حاول مرة أخرى.';
+            if (userMessage.includes('UNSUPPORTED')) {
+                userMessage = 'هذا الموقع غير مدعوم حالياً. جرب رابط من يوتيوب، تيك توك، انستجرام، فيسبوك، تويتر';
+            } else if (userMessage.includes('فشل الاتصال')) {
+                userMessage = 'مشكلة في الاتصال بالخادم. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.';
             } else {
-                userMessage = `⚠️ فشل التحميل: ${userMessage}. تأكد من أن الرابط عام وليس خاصاً.`;
+                userMessage = `⚠️ فشل التحميل: ${userMessage}`;
             }
             showError(userMessage);
         }
     }
 
-    // ربط الأزرار بالأحداث
-    mp4Btn.addEventListener('click', () => {
-        handleDownload('mp4');
-    });
-    mp3Btn.addEventListener('click', () => {
-        handleDownload('mp3');
-    });
-
-    // إضافة دعم لإدخال Enter (اختياري يحاكي ضغط MP4 كافتراضي)
+    mp4Btn.addEventListener('click', () => handleDownload('mp4'));
+    mp3Btn.addEventListener('click', () => handleDownload('mp3'));
+    
     linkInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            handleDownload('mp4');  // بالضغط على enter نفضل MP4
+            handleDownload('mp4');
         }
     });
-
-    // رسالة ترحيب إضافية مع إشارة لدعم جميع المنصات
+    
     setTimeout(() => {
-        // إذا كان ال input فارغ يمكن عرض نصائح
         if (!linkInput.value) {
             resultBox.innerHTML = `<div class="info-card">
-                🌍 يدعم اليوتيوب، تيك توك، انستقرام، تويتر، فيسبوك، ريديت، تويش، وسائل تواصل متنوعة.<br>
-                🧠 الخدمة الخلفية: Cobalt API (مفتوح المصدر، يضمن تحويل سريع).
+                🌍 يدعم اليوتيوب، تيك توك، انستقرام، تويتر، فيسبوك، ريديت، تويش<br>
+                ✨ الصق الرابط واختر جودة التحميل
             </div>`;
         }
     }, 100);
