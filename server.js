@@ -2,35 +2,43 @@ const express = require('express');
 const ytdl = require('ytdl-core');
 const cors = require('cors');
 const path = require('path');
-const dotenv = require('dotenv');
-
-dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper function to validate URL and extract platform
 async function validateUrl(url) {
     try {
+        console.log('Validating URL:', url);
+        
         // Check if it's a YouTube URL
         if (ytdl.validateURL(url)) {
-            const info = await ytdl.getInfo(url);
-            return {
-                isValid: true,
-                platform: 'youtube',
-                title: info.videoDetails.title,
-                duration: info.videoDetails.lengthSeconds,
-                thumbnail: info.videoDetails.thumbnails[0]?.url || '',
-                author: info.videoDetails.author.name
-            };
+            try {
+                const info = await ytdl.getInfo(url);
+                console.log('Video info fetched successfully');
+                return {
+                    isValid: true,
+                    platform: 'youtube',
+                    title: info.videoDetails.title,
+                    duration: info.videoDetails.lengthSeconds,
+                    thumbnail: info.videoDetails.thumbnails[0]?.url || '',
+                    author: info.videoDetails.author?.name || 'Unknown'
+                };
+            } catch (infoError) {
+                console.error('Error getting video info:', infoError);
+                return {
+                    isValid: true,
+                    platform: 'youtube',
+                    title: 'YouTube Video',
+                    message: 'تم التحقق من الرابط بنجاح'
+                };
+            }
         }
         
         // For other platforms
@@ -61,7 +69,7 @@ async function validateUrl(url) {
         return { isValid: false, error: '❌ الرابط غير صالح. يرجى التأكد من الرابط' };
     } catch (error) {
         console.error('Validation error:', error);
-        return { isValid: false, error: '❌ حدث خطأ في التحقق من الرابط' };
+        return { isValid: false, error: '❌ حدث خطأ في التحقق من الرابط: ' + error.message };
     }
 }
 
@@ -72,7 +80,6 @@ app.get('/download', async (req, res) => {
         
         console.log(`Download request: ${type} - ${url}`);
         
-        // Validate input
         if (!url) {
             return res.status(400).json({ error: 'الرجاء إدخال رابط الفيديو' });
         }
@@ -81,89 +88,63 @@ app.get('/download', async (req, res) => {
             return res.status(400).json({ error: 'نوع التحميل غير صحيح' });
         }
         
-        // Validate URL
-        const validation = await validateUrl(url);
-        if (!validation.isValid) {
-            return res.status(400).json({ error: validation.error });
+        // Check if it's a YouTube URL
+        if (!ytdl.validateURL(url)) {
+            return res.status(400).json({ error: 'الرابط ليس رابط يوتيوب صحيح' });
         }
         
-        // Handle YouTube downloads
-        if (validation.platform === 'youtube') {
-            try {
-                const info = await ytdl.getInfo(url);
-                // Clean filename
-                let title = info.videoDetails.title
-                    .replace(/[^\w\s\u0600-\u06FF]/gi, '')
-                    .substring(0, 100);
+        try {
+            const info = await ytdl.getInfo(url);
+            let title = info.videoDetails.title
+                .replace(/[^\w\s\u0600-\u06FF]/gi, '')
+                .substring(0, 100);
+            
+            if (type === 'mp4') {
+                // Try different quality options
+                let format = info.formats.find(f => f.hasVideo && f.hasAudio && f.qualityLabel === '360p');
+                if (!format) format = info.formats.find(f => f.hasVideo && f.hasAudio && f.qualityLabel === '480p');
+                if (!format) format = info.formats.find(f => f.hasVideo && f.hasAudio && f.qualityLabel === '720p');
+                if (!format) format = info.formats.find(f => f.hasVideo && f.hasAudio);
                 
-                if (type === 'mp4') {
-                    // Get video format (try 18 first, then 22, then any with audio)
-                    let format = ytdl.chooseFormat(info.formats, { 
-                        quality: '18',
-                        filter: 'audioandvideo'
-                    });
-                    
-                    if (!format) {
-                        format = ytdl.chooseFormat(info.formats, { 
-                            quality: '22',
-                            filter: 'audioandvideo'
-                        });
-                    }
-                    
-                    if (!format) {
-                        format = info.formats.find(f => f.hasVideo && f.hasAudio);
-                    }
-                    
-                    if (!format) {
-                        return res.status(404).json({ error: 'لم يتم العثور على صيغة فيديو مناسبة' });
-                    }
-                    
-                    res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp4`);
-                    res.header('Content-Type', 'video/mp4');
-                    
-                    const stream = ytdl(url, { format: format });
-                    stream.pipe(res);
-                    
-                    stream.on('error', (error) => {
-                        console.error('Stream error:', error);
-                        if (!res.headersSent) {
-                            res.status(500).json({ error: 'خطأ في تدفق الفيديو' });
-                        }
-                    });
-                    
-                } else if (type === 'mp3') {
-                    // Get audio only format
-                    const audioFormat = ytdl.chooseFormat(info.formats, { 
-                        quality: '140',
-                        filter: 'audioonly'
-                    });
-                    
-                    if (!audioFormat) {
-                        return res.status(404).json({ error: 'لم يتم العثور على صيغة صوتية مناسبة' });
-                    }
-                    
-                    res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp3`);
-                    res.header('Content-Type', 'audio/mpeg');
-                    
-                    const stream = ytdl(url, { format: audioFormat });
-                    stream.pipe(res);
-                    
-                    stream.on('error', (error) => {
-                        console.error('Stream error:', error);
-                        if (!res.headersSent) {
-                            res.status(500).json({ error: 'خطأ في تدفق الصوت' });
-                        }
-                    });
+                if (!format) {
+                    return res.status(404).json({ error: 'لم يتم العثور على صيغة فيديو مناسبة' });
                 }
-            } catch (error) {
-                console.error('Download error:', error);
-                res.status(500).json({ error: 'حدث خطأ أثناء التحميل: ' + error.message });
+                
+                res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp4`);
+                res.header('Content-Type', 'video/mp4');
+                
+                const stream = ytdl(url, { format: format });
+                stream.pipe(res);
+                
+                stream.on('error', (error) => {
+                    console.error('Stream error:', error);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'خطأ في تدفق الفيديو' });
+                    }
+                });
+                
+            } else if (type === 'mp3') {
+                const audioFormat = info.formats.find(f => f.hasAudio && !f.hasVideo && f.audioBitrate);
+                if (!audioFormat) {
+                    return res.status(404).json({ error: 'لم يتم العثور على صيغة صوتية مناسبة' });
+                }
+                
+                res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp3`);
+                res.header('Content-Type', 'audio/mpeg');
+                
+                const stream = ytdl(url, { format: audioFormat });
+                stream.pipe(res);
+                
+                stream.on('error', (error) => {
+                    console.error('Stream error:', error);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'خطأ في تدفق الصوت' });
+                    }
+                });
             }
-        } else {
-            res.status(501).json({ 
-                error: `⚠️ دعم ${validation.platform} قيد التطوير حالياً`,
-                message: 'يرجى استخدام روابط YouTube للتحميل الفوري'
-            });
+        } catch (error) {
+            console.error('Download error:', error);
+            res.status(500).json({ error: 'حدث خطأ أثناء التحميل: ' + error.message });
         }
         
     } catch (error) {
@@ -176,49 +157,29 @@ app.get('/download', async (req, res) => {
 app.post('/validate', async (req, res) => {
     try {
         const { url } = req.body;
+        console.log('Validate request received for:', url);
         
         if (!url) {
             return res.status(400).json({ error: 'الرابط مطلوب' });
         }
         
         const validation = await validateUrl(url);
+        console.log('Validation result:', validation);
         res.json(validation);
     } catch (error) {
         console.error('Validation endpoint error:', error);
-        res.status(500).json({ error: 'خطأ في التحقق من الرابط' });
+        res.status(500).json({ error: 'خطأ في التحقق من الرابط: ' + error.message });
     }
 });
 
-// Serve the main HTML file
+// Serve main page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// For Vercel serverless deployment
-if (process.env.VERCEL) {
-    module.exports = app;
-} else {
-    // Local development
-    app.listen(PORT, () => {
-        console.log(`🚀 Server is running on http://localhost:${PORT}`);
-        console.log(`📥 Media Downloader is ready to use`);
-    });
-}
-
-// Catch-all route for client-side routing
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Start server
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log(`📥 Media Downloader is ready to use`);
+    console.log(`✅ Make sure you have internet connection`);
 });
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'حدث خطأ غير متوقع' });
-});
-
-if (!process.env.VERCEL) {
-    app.listen(PORT, () => {
-        console.log(`🚀 Server is running on http://localhost:${PORT}`);
-        console.log(`📥 Media Downloader is ready to use`);
-    });
-}
