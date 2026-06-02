@@ -6,7 +6,47 @@ const https = require('https');
 const stream = require('stream');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;const express = require('express');
+const ytdl = require('ytdl-core');
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Endpoint واحد فقط للتحميل
+app.get('/download', async (req, res) => {
+    try {
+        const { url, type } = req.query;
+        
+        if (!url || !ytdl.validateURL(url)) {
+            return res.status(400).send('رابط غير صالح');
+        }
+        
+        const info = await ytdl.getInfo(url);
+        const title = info.videoDetails.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
+        
+        if (type === 'mp4') {
+            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+            res.header('Content-Type', 'video/mp4');
+            ytdl(url, { quality: 'lowest', filter: 'audioandvideo' }).pipe(res);
+        } else {
+            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+            res.header('Content-Type', 'audio/mpeg');
+            ytdl(url, { quality: '140', filter: 'audioonly' }).pipe(res);
+        }
+    } catch (error) {
+        res.status(500).send('خطأ في التحميل');
+    }
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+module.exports = app;
 
 // Middleware
 app.use(cors());
