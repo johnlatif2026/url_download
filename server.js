@@ -2,51 +2,8 @@ const express = require('express');
 const ytdl = require('ytdl-core');
 const cors = require('cors');
 const path = require('path');
-const https = require('https');
-const stream = require('stream');
 
 const app = express();
-const PORT = process.env.PORT || 3000;const express = require('express');
-const ytdl = require('ytdl-core');
-const cors = require('cors');
-const path = require('path');
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Endpoint واحد فقط للتحميل
-app.get('/download', async (req, res) => {
-    try {
-        const { url, type } = req.query;
-        
-        if (!url || !ytdl.validateURL(url)) {
-            return res.status(400).send('رابط غير صالح');
-        }
-        
-        const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^a-z0-9]/gi, '_').substring(0, 50);
-        
-        if (type === 'mp4') {
-            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-            res.header('Content-Type', 'video/mp4');
-            ytdl(url, { quality: 'lowest', filter: 'audioandvideo' }).pipe(res);
-        } else {
-            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-            res.header('Content-Type', 'audio/mpeg');
-            ytdl(url, { quality: '140', filter: 'audioonly' }).pipe(res);
-        }
-    } catch (error) {
-        res.status(500).send('خطأ في التحميل');
-    }
-});
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-module.exports = app;
 
 // Middleware
 app.use(cors());
@@ -54,6 +11,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// التحقق من الرابط
 async function validateUrl(url) {
     try {
         if (ytdl.validateURL(url)) {
@@ -73,84 +31,48 @@ async function validateUrl(url) {
         }
         return { isValid: false, error: '❌ الرابط غير صالح' };
     } catch (error) {
-        return { isValid: false, error: '❌ حدث خطأ' };
+        return { isValid: false, error: '❌ حدث خطأ في التحقق' };
     }
 }
 
-// Endpoint للتحميل المباشر (وليس رابط)
-app.get('/download-stream', async (req, res) => {
+// Endpoint التحميل الرئيسي
+app.get('/download', async (req, res) => {
     try {
         const { url, type } = req.query;
         
         if (!url || !ytdl.validateURL(url)) {
             return res.status(400).json({ error: 'رابط غير صالح' });
         }
-
+        
         const info = await ytdl.getInfo(url);
-        let title = info.videoDetails.title.replace(/[^\w\s]/gi, '').substring(0, 50);
+        const title = info.videoDetails.title.replace(/[^\w\s\u0600-\u06FF]/gi, '').substring(0, 50);
         
         if (type === 'mp4') {
-            // اختيار أفضل تنسيق فيديو
-            const format = ytdl.chooseFormat(info.formats, { 
-                quality: 'lowest',
-                filter: 'audioandvideo'
-            });
-            
-            if (!format) {
-                return res.status(404).json({ error: 'لا يوجد تنسيق فيديو' });
-            }
-            
-            // تعيين headers للتحميل
-            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
+            res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp4`);
             res.header('Content-Type', 'video/mp4');
-            
-            // تدفق الفيديو مباشرة
-            const videoStream = ytdl(url, { format: format });
-            videoStream.pipe(res);
-            
-            videoStream.on('error', (err) => {
-                console.error('Stream error:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'خطأ في التدفق' });
-                }
-            });
-            
-        } else if (type === 'mp3') {
-            // تنسيق الصوت
-            const audioFormat = ytdl.chooseFormat(info.formats, { 
-                quality: '140',
-                filter: 'audioonly'
-            });
-            
-            if (!audioFormat) {
-                return res.status(404).json({ error: 'لا يوجد تنسيق صوت' });
-            }
-            
-            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+            ytdl(url, { quality: '18', filter: 'audioandvideo' }).pipe(res);
+        } 
+        else if (type === 'mp3') {
+            res.header('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(title)}.mp3`);
             res.header('Content-Type', 'audio/mpeg');
-            
-            const audioStream = ytdl(url, { format: audioFormat });
-            audioStream.pipe(res);
-            
-            audioStream.on('error', (err) => {
-                console.error('Stream error:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'خطأ في التدفق' });
-                }
-            });
+            ytdl(url, { quality: '140', filter: 'audioonly' }).pipe(res);
         }
-        
+        else {
+            res.status(400).json({ error: 'نوع غير صحيح' });
+        }
     } catch (error) {
         console.error('Download error:', error);
         res.status(500).json({ error: 'فشل التحميل: ' + error.message });
     }
 });
 
-// Validate endpoint
+// Endpoint التحقق
 app.post('/validate', async (req, res) => {
     try {
         const { url } = req.body;
-        if (!url) return res.status(400).json({ error: 'الرابط مطلوب' });
+        if (!url) {
+            return res.status(400).json({ error: 'الرابط مطلوب' });
+        }
         const validation = await validateUrl(url);
         res.json(validation);
     } catch (error) {
@@ -158,10 +80,17 @@ app.post('/validate', async (req, res) => {
     }
 });
 
+// الصفحة الرئيسية
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server on http://localhost:${PORT}`);
-});
+// للتصدير في Vercel
+if (process.env.VERCEL) {
+    module.exports = app;
+} else {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+}
